@@ -28,11 +28,11 @@ char auth[] = BLYNK_AUTH_TOKEN;
 
 // Your WiFi credentials.
 // Set password to "" for open networks.
-// char ssid[] = "FAI'S HUB L1";
-// char pass[] = "Fptacademy@2021";
+char ssid[] = "FAI'S HUB L1";
+char pass[] = "Fptacademy@2021";
 
-char ssid[] = "Vinh_2G";
-char pass[] = "dv01223833642";
+// char ssid[] = "Vinh_2G";
+// char pass[] = "dv01223833642";
 
 #define DHTPIN 0 // Digital pin connected to the DHT sensor
 // Feather HUZZAH ESP8266 note: use pins 3, 4, 5, 12, 13 or 14 --
