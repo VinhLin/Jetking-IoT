@@ -7,6 +7,7 @@
 	+ Module Sim800
 - Còn 2 module GPS và module Led sẽ dùng nguồn 5VDC từ **uno ESP32**.
 - Các trạng thái LED:
+
 LED	|	Mô tả		|
 --------|-----------------------|
 Đỏ	| Cho biết thiết bị đang hoạt động |
