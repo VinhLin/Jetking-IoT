@@ -23,7 +23,7 @@
 #include <TinyGPSPlus.h>
 #include <TaskScheduler.h>
 #include <TimeLib.h>
-#include <ESP32Ping.h>
+#include "SPIFFS.h"
 
 struct Data_Send_PlatformIoT
 {
@@ -41,6 +41,13 @@ int count_connect_platformIoT;
 
 // 45 seconds WDT
 #define WDT_TIMEOUT 45
+
+// define status gps and gsm
+bool status_gps = false;
+bool status_gsm = false;
+
+// storage path
+#define log_path "/log/log_data.txt"
 
 //*******************************Module GSM Sim800************************************
 // Define baudrate for module GSM
@@ -100,6 +107,13 @@ void thingsBoardCallback();
 void timeDevice();
 void clearDataStruct();
 void statusLed(String module, bool status);
+void listDir(char *dir);
+void writeCreateLog(char *dir, String log);
+void logCallback();
+void readLog(char *dir);
+bool checkLogFile(char *dir);
+void initSPIFFS();
+void appendContentFile(char *dir, String data);
 
 //***********************************Tasks************************************************
 Scheduler ts;
@@ -111,6 +125,7 @@ Scheduler ts;
 // Task t3(5000, TASK_FOREVER, &t3Callback);
 Task taskThingsBoard(30 * TASK_SECOND, TASK_FOREVER, &thingsBoardCallback, &ts, true);
 Task taskProcessGPS(1 * TASK_SECOND, TASK_FOREVER, &processDataGPS, &ts, true);
+Task taskLog(30 * TASK_SECOND, TASK_FOREVER, &logCallback, &ts, true);
 
 void setup()
 {
@@ -126,6 +141,9 @@ void setup()
   // Init module GSM sim800
   initModuleGSM800();
 
+  // init SPIFFS on ESP32
+  initSPIFFS();
+
   // Init led status
   pinMode(GSM_Led, OUTPUT);
   pinMode(GPS_Led, OUTPUT);
@@ -134,7 +152,7 @@ void setup()
   // ON led Power
   statusLed("Power", true);
 
-  debugSerial.print(F("TinyGPSPlus library v. "));
+  debugSerial.print(F("\r\nTinyGPSPlus library v. "));
   debugSerial.println(TinyGPSPlus::libraryVersion());
 
   // start FW
@@ -180,11 +198,13 @@ void processDataGPS()
 
     // status led GPS
     statusLed("GPS", true);
+    status_gps = true;
   }
   else
   {
     // status led GPS
     statusLed("GPS", false);
+    status_gps = false;
     debugSerial.println(F("INVALID"));
   }
 
@@ -311,6 +331,7 @@ void startModuleGSM()
   if (!modem.waitForNetwork(10000))
   {
     debugSerial.println(" fail");
+    return;
   }
   debugSerial.println(" OK");
 
@@ -320,6 +341,7 @@ void startModuleGSM()
   if (!modem.gprsConnect(apn, user, pass))
   {
     debugSerial.println(" fail");
+    return;
   }
 
   debugSerial.println(" OK");
@@ -331,6 +353,8 @@ void thingsBoardCallback()
   if (modem.isNetworkConnected())
   {
     debugSerial.println("Network connected");
+    status_gsm = true;
+
     if (count_connect_platformIoT == 5)
     {
       // restart module sim
@@ -340,6 +364,9 @@ void thingsBoardCallback()
   }
   else
   {
+    // Lost connect gsm
+    status_gsm = false;
+
     // start and connect to GPRS
     startModuleGSM();
   }
@@ -442,4 +469,165 @@ void statusLed(String module, bool status)
   {
     digitalWrite(GPS_Led, LOW);
   }
+}
+
+// listDir list dir in SPIFFS
+//  listDir("/") -> list all dir in SPIFFS
+void listDir(char *dir)
+{
+  File root = SPIFFS.open(dir);
+
+  File file = root.openNextFile();
+
+  while (file)
+  {
+    debugSerial.print("FILE: ");
+    debugSerial.println(file.name());
+
+    file = root.openNextFile();
+  }
+}
+
+// writeCreateLog create and write log file
+void writeCreateLog(char *dir, String log)
+{
+  File file = SPIFFS.open(dir, FILE_WRITE);
+
+  if (!file)
+  {
+    debugSerial.println("There was an error opening the file for writing");
+    return;
+  }
+  if (file.print(log))
+  {
+    debugSerial.print("File was written: ");
+    debugSerial.println(log);
+  }
+  else
+  {
+    debugSerial.println("File write failed");
+    debugSerial.println(log);
+  }
+
+  file.close();
+}
+
+// logCallback log callback
+void logCallback()
+{
+  String log_data;
+
+  if (!status_gps || !status_gsm)
+  {
+    log_data = String(Data_Platform.Date_Time + "," + String(status_gps) + "," + String(Data_Platform.GPS_Lat, 2) + "," + String(Data_Platform.GPS_Long, 2) + "," + String(Data_Platform.GPS_Speed, 2) + "," + String(status_gsm));
+    // debugSerial.print("log_data: ");
+    // debugSerial.println(log_data);
+  }
+  else
+  {
+    return;
+  }
+
+  // write to log
+  appendContentFile(log_path, log_data);
+}
+
+// readLog read log
+void readLog(char *dir)
+{
+  File file = SPIFFS.open(dir);
+
+  if (!file)
+  {
+    debugSerial.println("Failed to open file for reading");
+    return;
+  }
+
+  debugSerial.println("File Content:");
+
+  while (file.available())
+  {
+    debugSerial.write(file.read());
+  }
+
+  file.close();
+}
+
+// checkLogFile check file is exit
+bool checkLogFile(char *dir)
+{
+  if (!SPIFFS.exists(dir))
+  {
+    debugSerial.println("File not exit.");
+    return false;
+  }
+  debugSerial.println("File exit.");
+
+  return true;
+}
+
+// initSPIFFS init, check, make and read file log
+void initSPIFFS()
+{
+  long file_size;
+
+  // init SPIFFS on ESP32
+  if (!SPIFFS.begin(true))
+  {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+  debugSerial.print("Total Bytes of SPIFFS: ");
+  debugSerial.println(SPIFFS.totalBytes());
+
+  // list all dir in SPIFFS
+  listDir("/");
+
+  // check file size
+  file_size = SPIFFS.usedBytes();
+  debugSerial.print("File Size: ");
+  debugSerial.println(file_size);
+  if (file_size >= 1000000)
+  {
+    // del file if file_size >= 1M (1 000 000 Bytes)
+    debugSerial.println("Remove log file.");
+    SPIFFS.remove(log_path);
+  }
+
+  // check file
+  if (!checkLogFile(log_path))
+  {
+    // make log file
+    writeCreateLog(log_path, "# Date, GPS_status, Lat, Long, Speed, GSM_status\r\n");
+  }
+  else
+  {
+    // read file if log file exit
+    readLog(log_path);
+  }
+}
+
+// appendContentFile append-content-to-file
+void appendContentFile(char *dir, String data)
+{
+  File fileToAppend = SPIFFS.open(dir, FILE_APPEND);
+
+  if (!fileToAppend)
+  {
+    debugSerial.println("There was an error opening the file for appending");
+    return;
+  }
+
+  if (fileToAppend.println(data))
+  {
+    debugSerial.print("File content was appended: ");
+    debugSerial.println(data);
+  }
+  else
+  {
+    debugSerial.println("File append failed");
+    debugSerial.println(data);
+  }
+
+  fileToAppend.close();
 }
