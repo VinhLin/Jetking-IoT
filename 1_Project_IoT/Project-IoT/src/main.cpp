@@ -24,6 +24,13 @@
 #include <TaskScheduler.h>
 #include <TimeLib.h>
 #include "SPIFFS.h"
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include "ESPAsyncWebServer.h"
+
+// Replace with your network credentials
+const char *ssid = "WifiAP_Log";
+const char *password = "123456789";
 
 struct Data_Send_PlatformIoT
 {
@@ -97,6 +104,9 @@ TinyGPSPlus gps;
 // Init struct Data_Send_PlatformIoT
 Data_Send_PlatformIoT Data_Platform;
 
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+
 //*************************************Functions*******************************************
 void processDataGPS();
 void platformThingsBoard();
@@ -114,6 +124,8 @@ void readLog(char *dir);
 bool checkLogFile(char *dir);
 void initSPIFFS();
 void appendContentFile(char *dir, String data);
+void initWifiAP(const char *id, const char *pass);
+void initWebServer();
 
 //***********************************Tasks************************************************
 Scheduler ts;
@@ -143,6 +155,12 @@ void setup()
 
   // init SPIFFS on ESP32
   initSPIFFS();
+
+  // init Wifi Access Point
+  initWifiAP(ssid, password);
+
+  // init webserver
+  initWebServer();
 
   // Init led status
   pinMode(GSM_Led, OUTPUT);
@@ -630,4 +648,30 @@ void appendContentFile(char *dir, String data)
   }
 
   fileToAppend.close();
+}
+
+// initWifiAP init wifi Access Point
+void initWifiAP(const char *id, const char *pass)
+{
+  debugSerial.print("Setting AP (Access Point).");
+  // Remove the password parameter, if you want the AP (Access Point) to be open
+  WiFi.softAP(id, pass);
+
+  IPAddress IP = WiFi.softAPIP();
+  debugSerial.print("AP IP address: ");
+  debugSerial.println(IP);
+}
+
+// initWebServer
+void initWebServer()
+{
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(200, "text/plain", "Hello, world"); });
+
+  server.on("/log", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(SPIFFS, log_path, String()); });
+
+  // Start server
+  server.begin();
 }

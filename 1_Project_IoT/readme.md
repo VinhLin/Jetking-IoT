@@ -33,3 +33,8 @@ https://github.com/mikalhart/TinyGPSPlus/blob/master/examples/BasicExample/Basic
 - **ThingsBoard** nằm trong top các platform dành cho IoT có [độ phổ biến nhất](https://movan.vn/top-10-iot-platform-ma-nguon-mo-2020/), ngoài ra đây cũng là một platform có mã nguồn mở.
 - [Docs Guides](https://thingsboard.io/docs/guides/)
 - [Tài liệu Tiếng Việt](https://lophocvui.com/category/iot-internet-of-things/)
+
+### ESPAsyncWebServer
+- [Tham khao](https://randomnerdtutorials.com/esp32-async-web-server-espasyncwebserver-library/)
+- [Github library](https://github.com/esphome/ESPAsyncWebServer)
+- https://github.com/esphome/ESPAsyncWebServer/blob/master/examples/simple_server/simple_server.ino

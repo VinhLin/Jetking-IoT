@@ -29,6 +29,13 @@ xanh	| Khi thiết bị đã **bắt được GPS** thì sẽ luôn sáng led xa
 - Cứ mỗi **30s** thì sẽ gửi data lên *ThingsBoard*.
 - Đồng thời show ra các trạng thái led.
 ### Giai đoạn 2: LOG
-**TODO**
-
-
+- Sau mỗi **30s** thì sẽ check xem nếu bị mất connect **GPS** hoặc **GSM** thì sẽ ghi lại **log**.
+- Format khi ghi log sẽ là: `# Date, GPS_status, Lat, Long, Speed, GSM_status`
+- Khi **size của file lớn hơn 1MB** thì sẽ tự động xóa và tạo lại file mới.
+- Thiết bị ESP32 sẽ phát ra wifi Access Point và khi connect sẽ là: 
+```
+ SSID: WifiAP_Log
+ Pass: 123456789
+```
+- Ví dụ IP khi connect với *WifiAP_Log* là **192.168.4.1**. 
+- Để thấy được log đã lưu trên ESP32 thì vào link: `http://192.168.4.1/log`.
