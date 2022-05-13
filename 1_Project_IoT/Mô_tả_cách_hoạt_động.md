@@ -16,6 +16,26 @@ xanh	| Khi thiết bị đã **bắt được GPS** thì sẽ luôn sáng led xa
 
 - Khi ngắt điện áp đầu vào, thiết bị sẽ lấy nguồn từ các *cell pin* để tiếp tục hoạt động.
 
+### Cách đấu chân tín hiệu của Module
+
+Module LED	|	Uno ESP32	|
+----------------|-----------------------|
+Led Đỏ (R)	|	GPIO 5	|
+Led Vàng (Y)	|	GPIO 13	|
+Led Xanh (G)	|	GPIO 12	|
+
+Module GPS	|	Uno ESP32	|
+----------------|-----------------------|
+RX	|	GPIO 27	|
+TX	|	GPIO 14	|
+GND	|	GND	|
+
+Module sim800	|	Uno ESP32	|
+----------------|-----------------------|
+RXD	|	GPIO 17	|
+TXD	|	GPIO 16	|
+GND	|	GND	|
+
 ------------------------------------------------------------------------------------------------
 ## Software
 ### Giai đoạn 1: 
